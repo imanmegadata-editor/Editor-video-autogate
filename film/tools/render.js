@@ -13,7 +13,7 @@ const srv = http.createServer((q, s) => {
   const port = srv.address().port;
   const b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const pg = await b.newPage({ viewport: { width: 1080, height: 1920 } });
-  pg.on('console', (m) => { if (!m.text().includes('GPU stall')) console.log('[page]', m.text().slice(0, 300)); });
+  pg.on('console', (m) => { if (!m.text().includes('GPU')) console.log('[page]', m.text().slice(0, 300)); });
   pg.on('pageerror', (e) => console.log('[pageerror]', e.stack));
   await pg.goto(`http://localhost:${port}/src/index.html${process.env.Q || ''}`);
   await pg.waitForFunction('window.ready === true', null, { timeout: 60000 });
@@ -30,7 +30,7 @@ const srv = http.createServer((q, s) => {
     for (let i = n0; i < n1; i++) {
       const buf = await grab(i / fps);
       if (!ff.stdin.write(buf)) await new Promise((r) => ff.stdin.once('drain', r));
-      if (i % 48 === 0) console.log(`frame ${i}/${n1}  ${((Date.now() - T) / 1000).toFixed(0)}s`);
+      if (i % 24 === 0) console.log(`frame ${i}/${n1}  ${((Date.now() - T) / 1000).toFixed(0)}s`);
     }
     ff.stdin.end(); await new Promise((r) => ff.on('close', r));
   }

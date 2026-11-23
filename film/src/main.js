@@ -10,6 +10,7 @@ import { buildWorld, buildCar, cloudTexture } from './world.js';
 
 const W = 1080, H = 1920;
 const DEBUG_MIRROR = location.search.includes('mirror');
+const RS = location.search.includes('fast') ? 0.5 : 1; // 3D render scale; overlay stays full-res
 const TL = await (await fetch('./timeline.json')).json();
 const LINES = await (await fetch('./lines.json')).json();
 
@@ -41,7 +42,7 @@ const HOUSE_Z = carZ(8.4) - 6;
 // ------------------------------------------------------------ renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(1);
-renderer.setSize(W, H);
+renderer.setSize(W * RS, H * RS);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 const scene = new THREE.Scene();
@@ -86,7 +87,7 @@ const flash = new THREE.AmbientLight(0xc8d8ff, 0); scene.add(flash);
 const composer = new EffectComposer(renderer);
 const renderPass = new RenderPass(scene, camera);
 composer.addPass(renderPass);
-const bloom = new UnrealBloomPass(new THREE.Vector2(W / 2, H / 2), 0.55, 0.6, 0.82);
+const bloom = new UnrealBloomPass(new THREE.Vector2(W * RS / 2, H * RS / 2), 0.55, 0.6, 0.82);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
@@ -578,7 +579,7 @@ window.renderFrame = (t) => {
     C.mirrorFace.visible = true;
   }
   if (renderer.toneMappingExposure <= 0) { renderer.setClearColor(0x000000); renderer.clear(); g2.fillStyle = '#000'; g2.fillRect(0, 0, W, H); }
-  else { if (DEBUG_MIRROR) renderPass.camera = C.mirrorCam; composer.render(); g2.filter = 'contrast(1.08) saturate(0.82)'; g2.drawImage(renderer.domElement, 0, 0); g2.filter = 'none'; }
+  else { if (DEBUG_MIRROR) renderPass.camera = C.mirrorCam; composer.render(); g2.filter = 'contrast(1.08) saturate(0.82)'; g2.drawImage(renderer.domElement, 0, 0, W, H); g2.filter = 'none'; }
   overlay(t, name);
   return out.toDataURL('image/jpeg', 0.93);
 };
