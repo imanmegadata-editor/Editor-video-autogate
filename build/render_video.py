@@ -6,7 +6,7 @@ The original footage is never altered beyond framing (crop/zoom) and a light col
 The framing keeps the burned-in Chinese subtitles of the source outside the frame so the
 Malay subtitles can take their place.
 """
-import subprocess, sys, math, functools
+import subprocess, sys, math, functools, os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from timeline import *
@@ -165,6 +165,34 @@ def glass(canvas, box, radius, alpha, tint=(8, 12, 22), dark=0.72):
     canvas.alpha_composite(reg, (x0, y0))
 
 def rgba(c, a): return c + (int(255 * max(0, min(1, a))),)
+
+LOGO = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "logo_cctv_selatan.png")).convert("RGBA")
+
+@functools.lru_cache(None)
+def logo_sprite(width):
+    h = int(LOGO.height * width / LOGO.width)
+    return LOGO.resize((width, h), Image.LANCZOS)
+
+def paste_logo(canvas, cx, cy, width, alpha=1.0, glow=0.0):
+    if alpha <= 0.003: return
+    img = logo_sprite(int(width))
+    if glow > 0:
+        g = Image.new("RGBA", img.size, (255, 60, 60, 0)); g.putalpha(img.getchannel("A").point(lambda v: v * glow * alpha))
+        pad = Image.new("RGBA", (img.width + 80, img.height + 80), (0, 0, 0, 0)); pad.alpha_composite(g, (40, 40))
+        pad = pad.filter(ImageFilter.GaussianBlur(18))
+        canvas.alpha_composite(pad, (int(cx - pad.width / 2), int(cy - pad.height / 2)))
+    if alpha < 1:
+        img = img.copy(); img.putalpha(img.getchannel("A").point(lambda v: v * alpha))
+    canvas.alpha_composite(img, (int(cx - img.width / 2), int(cy - img.height / 2)))
+
+def draw_watermark(canvas, alpha):
+    if alpha <= 0: return
+    cx, cy, r = W - 132, 248, 88
+    lay = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(lay)
+    glass(canvas, (cx - r, cy - r, cx + r, cy + r), r, alpha, dark=0.85)
+    d.ellipse((cx - r, cy - r, cx + r, cy + r), outline=rgba((255, 70, 70), 0.55 * alpha), width=2)
+    canvas.alpha_composite(lay)
+    paste_logo(canvas, cx, cy, 2 * r - 14, alpha=alpha)
 
 # ------------------------------------------------------------------ subtitles
 def parse(text):
@@ -385,6 +413,8 @@ def render_intro(t, first):
     c = bg.convert("RGBA")
     out = 1 - ease(ramp(t, 2.2, 2.6))
     lift = -24 * ease(ramp(t, 2.2, 2.6))
+    pg = ease_out(ramp(t, 0.05, 0.6))
+    paste_logo(c, W / 2, 560 + lift + (1 - pg) * 20, 400 * (0.92 + 0.08 * pg), alpha=pg * out, glow=0.5)
     p1 = ease_out(ramp(t, 0.3, 0.8))
     paste(c, text_sprite("AUTOGATE", "InterDisplay-Bold.otf", 78, WHITE, spacing=26),
           W / 2, 820 + (1 - p1) * 30 + lift, alpha=p1 * out, anchor="cm")
@@ -406,6 +436,8 @@ def render_outro(t, last):
     bg = grade(frame_view(last, (s * (1 + 0.04 * t / OUTRO), cx, min(cy, 1712 - 960 / (s * 1.04)))))
     bg = darken(bg, 1 - 0.72 * p, blur=26 * p)
     c = bg.convert("RGBA")
+    pg = ease_out(ramp(t, 0.1, 0.6))
+    paste_logo(c, W / 2, 500 + (1 - pg) * 20, 380 * (0.92 + 0.08 * pg), alpha=pg, glow=0.5)
     for k, (word, y) in enumerate([("PINTAR", 790), ("SELAMAT", 945), ("TERJAMIN", 1100)]):
         a = 0.3 + 0.3 * k
         q = ease_out(ramp(t, a, a + 0.4))
@@ -433,6 +465,7 @@ def render_main(ts, src_img, t):
     c = c.filter(ImageFilter.UnsharpMask(radius=1.4, percent=45, threshold=2)) if cam[0] > 1.5 else c
     hud_a = ease(ramp(ts, 0.0, 0.6)) * (1 - ease(ramp(ts, SRC_DUR - 0.4, SRC_DUR)))
     draw_hud(c, t, ts, hud_a)
+    draw_watermark(c, hud_a * 0.95)
     draw_focus(c, ts, cam)
     draw_info_chip(c, ts, SUBS[3][0], SUBS[4][1], "PENGESAN INFRAMERAH", "MAKLUMAT", icon=ir_icon, y=1300)
     if ALARM[0] - 0.05 <= ts <= ALARM[1] + 0.3:
