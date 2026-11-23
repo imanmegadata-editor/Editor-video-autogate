@@ -1,0 +1,24 @@
+{
+  "fps": 24,
+  "duration": 70.0,
+  "voices": {
+    "hook": 0.45, "l1": 10.8, "l2": 15.55, "l3": 24.2, "radio1": 27.2, "l4": 32.4,
+    "l5": 38.3, "l6": 43.5, "news": 47.0, "l8": 53.7, "l9": 55.9, "end": 63.0
+  },
+  "subs": [
+    {"id": "hook",  "style": "ghost", "parts": [["Jangan... pandang... "], ["belakang.", 1]]},
+    {"id": "l1",    "style": "amir",  "parts": [["Dah pukul "], ["dua pagi", 1], ["... Kenapa jalan ni "], ["sunyi", 1], [" sangat?"]]},
+    {"id": "l2",    "style": "amir",  "parts": [["Eh... "], ["siapa", 1], [" tu? Tengah malam macam ni."]]},
+    {"id": "l3",    "style": "amir",  "parts": [["Jangan "], ["tengok", 1], [", Amir. Jangan "], ["tengok", 1], ["."]]},
+    {"id": "radio1","style": "ghost", "parts": [["Tumpang", 1], ["... saya..."]]},
+    {"id": "l4",    "style": "amir",  "parts": [["Bau apa ni... bunga "], ["melur", 1], ["?"]]},
+    {"id": "l5",    "style": "ghost", "parts": [["Hantar... saya... "], ["balik...", 1]]},
+    {"id": "l6",    "style": "amir",  "parts": [["Tak ada... tak ada apa-apa."]]},
+    {"id": "news",  "style": "radio", "from": 0.0, "to": 0.5, "parts": [["Berita terkini. Seorang pemuda "], ["maut", 1], [" dalam kemalangan..."]]},
+    {"id": "news",  "style": "radio", "from": 0.5, "to": 1.0, "parts": [["...di Jalan Kampung Sungai Mati, jam "], ["dua pagi", 1], [" tadi."]]},
+    {"id": "l8",    "style": "amir",  "parts": [["Tak... tak "], ["mungkin", 1], ["..."]]},
+    {"id": "l9",    "style": "ghost", "parts": [["Kita dah "], ["sampai", 1], ["... Amir."]]},
+    {"id": "txt1",  "style": "text", "start": 60.2, "end": 62.8, "parts": [["Dia tak pernah duduk di belakang "], ["Amir", 1], ["..."]]},
+    {"id": "end",   "style": "ghost", "parts": [["Sekarang... dia di belakang "], ["KAU.", 1]]}
+  ]
+}
