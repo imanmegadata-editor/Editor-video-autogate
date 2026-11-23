@@ -1,15 +1,16 @@
 """Builds the final soundtrack: original voice + original synthesized music bed + soft SFX.
 
-usage: python3 make_audio.py <source.mp4> <out.wav>
+usage: python3 make_audio.py <source.mp4> <voice_ms.wav> <out.wav>
 """
 import subprocess, sys, numpy as np
 from timeline import *
 
 SR = 48000
-src, out = sys.argv[1], sys.argv[2]
+src, vo, out = sys.argv[1], sys.argv[2], sys.argv[3]
 N = int(TOTAL * SR) + SR // 10
 t = np.arange(N) / SR
 rng = np.random.default_rng(880)
+def db(x): return 10 ** (x / 20)
 
 def lp(x, fc):  # one-pole low-pass, run twice
     a = np.exp(-2 * np.pi * fc / SR)
@@ -18,7 +19,6 @@ def lp(x, fc):  # one-pole low-pass, run twice
         x = lfilter([1 - a], [1, -a], x)
     return x
 
-def db(x): return 10 ** (x / 20)
 
 # ---------------- voice (original audio, lightly cleaned) ----------------
 v = subprocess.run(["ffmpeg", "-v", "error", "-i", src, "-af",
@@ -28,7 +28,19 @@ v = subprocess.run(["ffmpeg", "-v", "error", "-i", src, "-af",
 v = np.frombuffer(v, np.float32).reshape(-1, 2)
 voice = np.zeros((N, 2))
 o = int(INTRO * SR)
+# keep the original audio only for the real alarm demo, with short fades
+keep = np.zeros(len(v), np.float32)
+a0, a1 = int((ALARM[0] - 0.1) * SR), int((ALARM[1] + 0.1) * SR)
+keep[a0:a1] = 1
+fade = int(0.06 * SR)
+keep[a0:a0 + fade] = np.linspace(0, 1, fade); keep[a1 - fade:a1] = np.linspace(1, 0, fade)
+v = v * keep[:, None] * db(-2)
 voice[o:o + len(v)] = v[: N - o]
+# Malay voice-over (mono -> both channels)
+m = subprocess.run(["ffmpeg", "-v", "error", "-i", vo, "-ac", "1", "-ar", str(SR), "-f", "f32le", "-"], capture_output=True).stdout
+m = np.frombuffer(m, np.float32)
+m = m / (np.abs(m).max() + 1e-9) * db(-3)
+voice[o:o + len(m), 0] += m[: N - o]; voice[o:o + len(m), 1] += m[: N - o]
 
 # ---------------- music bed (original, synthesized) ----------------
 bpm = 96; beat = 60 / bpm; bar = 4 * beat
@@ -133,7 +145,7 @@ out_t = INTRO + SRC_DUR
 place(whoosh(1.0, up=False), out_t - 0.25, -13)  # footage -> outro
 for k, at in enumerate([0.3, 0.6, 0.9]):
     place(blip(1320 + 220 * k, 0.2), out_t + at, -24, (-0.3, 0, 0.3)[k])
-place(hit(2.2, 45), out_t + 0.9, -11)  # final impact on RELIABLE.
+place(hit(2.2, 45), out_t + 0.9, -11)  # final impact on TERJAMIN.
 
 mix = voice * 1.0 + music * db(-14) + sfx
 mix = np.clip(mix, -1, 1)

@@ -1,39 +1,39 @@
 1
-00:00:03,100 --> 00:00:05,050
+00:00:03,100 --> 00:00:04,723
 Tekan dua butang bawah serentak
 
 2
-00:00:05,150 --> 00:00:06,550
-Boleh hidupkan atau matikan
+00:00:04,743 --> 00:00:06,478
+untuk hidupkan atau matikan
 
 3
-00:00:06,600 --> 00:00:08,150
-bunyi bip semasa pagar dibuka & ditutup
+00:00:06,498 --> 00:00:08,310
+bunyi bip buka & tutup pagar
 
 4
-00:00:08,250 --> 00:00:09,850
-Apabila sensor inframerah terhalang,
+00:00:08,330 --> 00:00:10,040
+Jika pengesan inframerah terhalang,
 
 5
-00:00:09,900 --> 00:00:11,050
-pagar tidak boleh ditutup
+00:00:10,060 --> 00:00:11,380
+pagar tidak akan tertutup
 
 6
-00:00:11,150 --> 00:00:13,050
-Tekan dua butang atas serentak
+00:00:11,400 --> 00:00:13,152
+Tekan serentak dua butang atas
 
 7
-00:00:13,100 --> 00:00:14,700
+00:00:13,172 --> 00:00:14,811
 untuk paksa pagar ditutup
 
 8
-00:00:14,800 --> 00:00:17,050
-Tekan dua butang kanan (atas & bawah) serentak
+00:00:14,850 --> 00:00:16,693
+Tekan dua butang kanan serentak
 
 9
-00:00:17,150 --> 00:00:18,500
+00:00:16,713 --> 00:00:18,198
 untuk bunyikan penggera
 
 10
-00:00:20,250 --> 00:00:22,600
+00:00:20,250 --> 00:00:22,806
 Tekan butang merah untuk matikan penggera

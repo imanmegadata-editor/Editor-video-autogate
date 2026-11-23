@@ -229,10 +229,10 @@ def union(*ks, pad=16):
     return (min(q[0] for q in r) - pad, min(q[1] for q in r) - pad, max(q[2] for q in r) + pad, max(q[3] for q in r) + pad)
 
 CALL = [  # (start, end, source rect, label, label start, accent)
-    (0.25, 4.95, union("BL", "BR"), "BUNYI BIP  ·  ON / OFF", 2.2, CYAN),
-    (8.20, 11.62, union("TL", "TR"), "PAKSA TUTUP PAGAR", 8.25, CYAN),
-    (11.90, 15.45, union("TR", "BR"), "AKTIFKAN PENGGERA", 14.15, AMBER),
-    (17.30, 19.80, union("BR", pad=14), "MATIKAN PENGGERA", 17.35, AMBER),
+    (0.25, SUBS[2][1], union("BL", "BR"), "BUNYI BIP  ·  HIDUP / MATI", SUBS[1][0], CYAN),
+    (SUBS[5][0], SUBS[6][1], union("TL", "TR"), "PAKSA TUTUP PAGAR", SUBS[6][0], CYAN),
+    (SUBS[7][0], 15.45, union("TR", "BR"), "AKTIFKAN PENGGERA", SUBS[8][0], AMBER),
+    (SUBS[9][0], 19.80, union("BR", pad=14), "MATIKAN PENGGERA", SUBS[9][0] + 0.05, AMBER),
 ]
 
 def draw_focus(canvas, ts, cam):
@@ -293,6 +293,7 @@ def draw_info_chip(canvas, ts, a, b, title, tag, icon=None, bars=None, y=1225):
     spr = text_sprite(title, "InterDisplay-Bold.otf", 44, WHITE, spacing=3)
     tg = text_sprite(tag, "mono", 24, AMBER, spacing=4, shadow=False)
     _, _, tw, th = spr
+    tw = max(tw, tg[2])
     iw = 150 if (icon or bars is not None) else 0
     cw = tw + iw + 80; ch = 128
     x0 = W / 2 - cw / 2 + (1 - pin) * -40
@@ -329,7 +330,7 @@ def draw_hud(canvas, t, ts, alpha):
     paste(canvas, text_sprite("AUTOGATE // MODEL 880", "mono", 24, CYAN, spacing=2), 74, 102, alpha=0.9 * alpha)
     blink = 1 if int(t * 2) % 2 == 0 else 0.35
     paste(canvas, text_sprite("●", "mono", 22, (255, 70, 70)), W - 66 - 196, 102, alpha=alpha * blink)
-    paste(canvas, text_sprite(f"DEMO {ts:05.1f}s", "mono", 24, WHITE, spacing=2), W - 66, 102, alpha=0.85 * alpha, anchor="rt")
+    paste(canvas, text_sprite(f"MASA {ts:05.1f}s", "mono", 24, WHITE, spacing=2), W - 66, 102, alpha=0.85 * alpha, anchor="rt")
 
 def draw_lower_third(canvas, ts):
     a, b = 0.15, 2.1
@@ -405,7 +406,7 @@ def render_outro(t, last):
     bg = grade(frame_view(last, (s * (1 + 0.04 * t / OUTRO), cx, min(cy, 1712 - 960 / (s * 1.04)))))
     bg = darken(bg, 1 - 0.72 * p, blur=26 * p)
     c = bg.convert("RGBA")
-    for k, (word, y) in enumerate([("SMART", 790), ("SECURE", 945), ("RELIABLE", 1100)]):
+    for k, (word, y) in enumerate([("PINTAR", 790), ("SELAMAT", 945), ("TERJAMIN", 1100)]):
         a = 0.3 + 0.3 * k
         q = ease_out(ramp(t, a, a + 0.4))
         if q <= 0: continue
@@ -433,9 +434,9 @@ def render_main(ts, src_img, t):
     hud_a = ease(ramp(ts, 0.0, 0.6)) * (1 - ease(ramp(ts, SRC_DUR - 0.4, SRC_DUR)))
     draw_hud(c, t, ts, hud_a)
     draw_focus(c, ts, cam)
-    draw_info_chip(c, ts, 5.3, 7.95, "SENSOR INFRAMERAH", "INFO", icon=ir_icon, y=1300)
+    draw_info_chip(c, ts, SUBS[3][0], SUBS[4][1], "PENGESAN INFRAMERAH", "MAKLUMAT", icon=ir_icon, y=1300)
     if ALARM[0] - 0.05 <= ts <= ALARM[1] + 0.3:
-        draw_info_chip(c, ts, ALARM[0], ALARM[1], "BUNYI PENGGERA", "DEMO  ·  AUDIO ASAL", bars=bars_at(ts), y=1300)
+        draw_info_chip(c, ts, ALARM[0], ALARM[1], "BUNYI PENGGERA", "DEMONSTRASI  ·  AUDIO ASAL", bars=bars_at(ts), y=1300)
     draw_lower_third(c, ts)
     draw_subs(c, ts)
     return c
