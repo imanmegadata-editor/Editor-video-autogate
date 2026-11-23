@@ -91,12 +91,46 @@ function faceTexture(pale) {
   return t;
 }
 
+// One continuous sculpted head (jaw, cheekbones, sockets, nose ridge, lips) instead of glued spheres.
+function sculptHead(o) {
+  const g = new THREE.SphereGeometry(0.1, 96, 72);
+  const p = g.attributes.position;
+  const G = (x, s) => Math.exp(-(x * x) / (s * s));
+  for (let i = 0; i < p.count; i++) {
+    let nx = p.getX(i) / 0.1, ny = p.getY(i) / 0.1, nz = p.getZ(i) / 0.1;
+    let x = nx * 0.1 * o.w, y = ny * 0.1 * o.h, z = nz * 0.1 * o.d;
+    const low = Math.max(0, (0.15 - ny) / 1.15);
+    x *= 1 - o.jaw * low * low * 1.4;                       // jaw taper
+    if (nz > 0) z += 0.014 * low * nz * o.chin;               // chin forward
+    if (nz < -0.2) z *= 1.06;                                 // cranium
+    if (ny > 0.35 && nz > 0.4) z -= 0.006 * (ny - 0.35);      // sloped forehead
+    const front = Math.max(0, nz);
+    let d = 0;
+    for (const sx of [-1, 1]) {
+      d -= o.socket * G(nx - sx * 0.38, 0.17) * G(ny - 0.15, 0.13) * front;           // eye sockets
+      d += o.cheek * G(nx - sx * 0.55, 0.2) * G(ny + 0.08, 0.16) * front;             // cheekbones
+      d -= o.hollow * G(nx - sx * 0.55, 0.16) * G(ny + 0.32, 0.12) * front;           // hollow cheeks
+      d += 0.004 * G(nx - sx * 0.12, 0.06) * G(ny + 0.2, 0.06) * front * o.nose;      // nostril wings
+    }
+    d += 0.005 * G(ny - 0.33, 0.07) * G(nx, 0.45) * front * o.brow;                   // brow ridge
+    d += 0.022 * o.nose * G(nx, 0.075) * Math.min(1, G(ny + 0.12, 0.2) * 1.15) * front * (ny < 0.25 ? 1 : G(ny - 0.25, 0.08)); // nose ridge
+    d += 0.007 * o.nose * G(nx, 0.09) * G(ny + 0.17, 0.07) * front;                  // nose tip
+    d += 0.004 * o.lips * G(nx, 0.2) * G(ny + 0.42, 0.045) * front;                  // upper lip
+    d += 0.0045 * o.lips * G(nx, 0.17) * G(ny + 0.53, 0.05) * front;                 // lower lip
+    d += 0.004 * G(nx, 0.2) * G(ny + 0.78, 0.1) * front * o.chin;                    // chin ball
+    x += nx * d; y += ny * d * 0.5; z += nz * d;
+    p.setXYZ(i, x, y, z);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
 // ---------------------------------------------------------------- AMIR
 export function makeAmir() {
   const root = new THREE.Group();
   const skin = std(0xffffff, { map: faceTexture(false), roughness: 0.55 });
-  const skinPlain = std(0xa06a4a, { roughness: 0.55 });
-  const hairM = std(0x0c0a09, { roughness: 0.45 });
+  const skinPlain = std(0xa8714f, { roughness: 0.55 });
+  const hairM = std(0x0c0a09, { roughness: 0.75 });
   const jacket = std(0x1f2b24, { roughness: 0.85 });
   const shirt = std(0x7a6d58, { roughness: 0.9 });
 
@@ -112,21 +146,11 @@ export function makeAmir() {
   const head = new THREE.Group();
   head.position.set(0, 1.12, 0.0);
   root.add(head);
-  const skull = mesh(new THREE.SphereGeometry(0.1, 48, 32), skin, [0, 0.11, 0.0], [0.92, 1.1, 1.02]);
+  const skull = mesh(sculptHead({ w: 0.86, h: 1.13, d: 0.98, jaw: 0.3, chin: 1.0, socket: 0.007, cheek: 0.004, hollow: 0.0, nose: 1.0, brow: 1.0, lips: 1.0 }), skin, [0, 0.11, 0.0]);
   head.add(skull);
-  const jaw = mesh(new THREE.SphereGeometry(0.074, 32, 24), skinPlain, [0, 0.06, 0.028], [1.0, 0.86, 1.02]);
-  head.add(jaw);
-  const chin = mesh(new THREE.SphereGeometry(0.03, 16, 12), skinPlain, [0, 0.022, 0.075], [1.2, 0.9, 0.9]);
-  head.add(chin);
-  const nose = mesh(new THREE.SphereGeometry(0.017, 16, 12), skinPlain, [0, 0.093, 0.1], [1.15, 1.0, 1.1]);
-  head.add(nose);
-  const bridge = mesh(new THREE.CapsuleGeometry(0.009, 0.035, 4, 8), skinPlain, [0, 0.115, 0.096]);
-  bridge.rotation.x = -0.35; head.add(bridge);
   for (const s of [-1, 1]) {
-    const ear = mesh(new THREE.SphereGeometry(0.024, 16, 12), skinPlain, [s * 0.091, 0.105, -0.005], [0.38, 1.0, 0.7]);
+    const ear = mesh(new THREE.SphereGeometry(0.024, 16, 12), skinPlain, [s * 0.086, 0.112, -0.012], [0.35, 0.95, 0.65]);
     head.add(ear);
-    const cheek = mesh(new THREE.SphereGeometry(0.026, 16, 12), skinPlain, [s * 0.042, 0.083, 0.058], [1, 0.75, 0.7]);
-    head.add(cheek);
   }
   // hair: cap + fringe + sides
   const cap = mesh(new THREE.SphereGeometry(0.104, 40, 20, 0, Math.PI * 2, 0, Math.PI * 0.5), hairM, [0, 0.128, -0.012], [0.97, 1.1, 1.06]);
@@ -136,7 +160,12 @@ export function makeAmir() {
     const f = mesh(new THREE.SphereGeometry(0.03, 12, 8), hairM, [Math.sin(a) * 0.075, 0.19 - Math.abs(i - 3) * 0.004, 0.06 + Math.cos(a) * 0.01], [1.1, 0.5, 0.9]);
     f.rotation.z = a * 0.8; head.add(f);
   }
-  for (const s of [-1, 1]) head.add(mesh(new THREE.BoxGeometry(0.012, 0.04, 0.02), hairM, [s * 0.087, 0.112, 0.03]));
+  // styled hair volume: side part with a soft quiff
+  for (const [x, y, z, sx, sy, sz, rz] of [[-0.035, 0.205, 0.03, 0.055, 0.022, 0.07, 0.25], [0.02, 0.212, 0.035, 0.06, 0.025, 0.075, -0.1], [0.055, 0.195, 0.02, 0.04, 0.022, 0.07, -0.45],
+    [0.0, 0.215, -0.02, 0.07, 0.025, 0.07, 0], [-0.06, 0.18, 0.045, 0.03, 0.018, 0.04, 0.6], [0.035, 0.2, 0.06, 0.04, 0.016, 0.03, -0.2]]) {
+    const hv = mesh(new THREE.SphereGeometry(1, 20, 14), hairM, [x, y, z], [sx, sy, sz]); hv.rotation.z = rz; head.add(hv);
+  }
+
 
   // eyes
   const eyes = [], lids = [], lowLids = [], brows = [];
@@ -144,10 +173,11 @@ export function makeAmir() {
   const iris = std(0x2b1709, { roughness: 0.2 });
   const pupil = new THREE.MeshBasicMaterial({ color: 0x000000 });
   const glint = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const lidM = std(0x95603f, { roughness: 0.6 });
+  const lidM = std(0xa06a4a, { roughness: 0.6 });
   for (const s of [-1, 1]) {
     const socket = new THREE.Group();
-    socket.position.set(s * 0.035, 0.127, 0.079);
+    socket.position.set(s * 0.034, 0.128, 0.074);
+    socket.scale.set(0.92, 0.86, 0.92);
     head.add(socket);
     const eye = new THREE.Group(); socket.add(eye);
     eye.add(mesh(new THREE.SphereGeometry(0.0175, 24, 16), white));
@@ -159,25 +189,26 @@ export function makeAmir() {
     socket.add(lid); lids.push(lid);
     const low = mesh(new THREE.SphereGeometry(0.0186, 24, 12, 0, Math.PI * 2, Math.PI * 0.62, Math.PI * 0.38), lidM);
     socket.add(low); lowLids.push(low);
-    const brow = mesh(new THREE.BoxGeometry(0.036, 0.0075, 0.012), hairM, [s * 0.037, 0.154, 0.09]);
+    const brow = mesh(new THREE.CapsuleGeometry(0.004, 0.03, 4, 8), hairM, [s * 0.036, 0.152, 0.086]); brow.rotation.z = Math.PI / 2;
     head.add(brow); brows.push(brow);
   }
   // mouth
   const mouth = new THREE.Group();
-  mouth.position.set(0, 0.058, 0.092);
+  mouth.position.set(0, 0.058, 0.0935);
+  mouth.scale.set(0.9, 0.8, 0.8);
   head.add(mouth);
   const inner = mesh(new THREE.SphereGeometry(0.02, 20, 12), new THREE.MeshStandardMaterial({ color: 0x1a0505, roughness: 1 }));
   mouth.add(inner);
   const teeth = mesh(new THREE.BoxGeometry(0.026, 0.006, 0.006), std(0xe8e2d0, { roughness: 0.3 }), [0, 0.008, 0.004]);
   mouth.add(teeth);
-  const lips = mesh(new THREE.TorusGeometry(0.019, 0.005, 10, 28), std(0x6a3526, { roughness: 0.45 }));
+  const lips = mesh(new THREE.TorusGeometry(0.019, 0.0045, 10, 28), std(0x7a4232, { roughness: 0.45 }));
   mouth.add(lips);
 
   // sweat beads
   const sweat = [];
   const sweatM = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.05, transmission: 0.6, transparent: true, opacity: 0.8 });
   for (const p of [[-0.03, 0.172, 0.085], [0.025, 0.168, 0.088], [0.06, 0.15, 0.07], [-0.065, 0.14, 0.066]]) {
-    const d = mesh(new THREE.SphereGeometry(0.0042, 10, 8), sweatM, p, [1, 1.4, 1]);
+    const d = mesh(new THREE.SphereGeometry(0.0028, 10, 8), sweatM, p, [1, 1.4, 1]);
     head.add(d); sweat.push(d);
   }
 
@@ -214,8 +245,8 @@ export function makeAmir() {
       lowLids[i].rotation.x = lerp(0, -0.2, st.wide);
       const s = i === 0 ? -1 : 1;
       const b = brows[i];
-      b.position.y = 0.154 + st.browUp * 0.012 + st.browWorry * 0.004 - st.browAngry * 0.006;
-      b.rotation.z = s * (-st.browWorry * 0.38 + st.browAngry * 0.35);
+      b.position.y = 0.152 + st.browUp * 0.012 + st.browWorry * 0.004 - st.browAngry * 0.006;
+      b.rotation.z = Math.PI / 2 + s * (-st.browWorry * 0.38 + st.browAngry * 0.35);
     }
     const open = clamp01(st.mouthOpen);
     inner.scale.set(1 + st.mouthWide * 0.35, 0.08 + open * 0.85, 0.35);
@@ -286,19 +317,17 @@ export function makeGhost() {
   const head = new THREE.Group();
   head.position.set(0, 1.5, 0);
   root.add(head);
-  head.add(mesh(new THREE.SphereGeometry(0.098, 48, 32), skin, [0, 0.1, 0], [0.86, 1.14, 0.98]));
-  head.add(mesh(new THREE.SphereGeometry(0.066, 24, 16), skinPlain, [0, 0.05, 0.022], [0.95, 0.95, 1]));
-  head.add(mesh(new THREE.SphereGeometry(0.013, 12, 10), skinPlain, [0, 0.085, 0.091], [1, 1.25, 1]));
+  head.add(mesh(sculptHead({ w: 0.8, h: 1.18, d: 0.95, jaw: 0.38, chin: 0.8, socket: 0.014, cheek: 0.006, hollow: 0.008, nose: 0.6, brow: 0.6, lips: 0.3 }), skin, [0, 0.1, 0]));
   // hollow eye sockets
   const sockM = new THREE.MeshBasicMaterial({ color: 0x000000 });
   const pupils = [];
   for (const s of [-1, 1]) {
-    head.add(mesh(new THREE.SphereGeometry(0.022, 20, 14), sockM, [s * 0.033, 0.118, 0.07], [1.05, 0.78, 0.55]));
-    const p = mesh(new THREE.SphereGeometry(0.0042, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff1d6 }), [s * 0.033, 0.117, 0.0805]);
+    head.add(mesh(new THREE.SphereGeometry(0.02, 20, 14), sockM, [s * 0.031, 0.117, 0.064], [1.05, 0.72, 0.55]));
+    const p = mesh(new THREE.SphereGeometry(0.0042, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff1d6 }), [s * 0.031, 0.116, 0.0745]);
     head.add(p); pupils.push(p);
   }
   // mouth: void + jagged teeth + grey lips
-  const mouth = new THREE.Group(); mouth.position.set(0, 0.045, 0.083); head.add(mouth);
+  const mouth = new THREE.Group(); mouth.position.set(0, 0.045, 0.078); mouth.scale.set(0.85, 1, 1); head.add(mouth);
   const voidM = mesh(new THREE.SphereGeometry(0.02, 20, 12), sockM);
   mouth.add(voidM);
   const lip = mesh(new THREE.TorusGeometry(0.019, 0.0035, 8, 28), std(0x4c3a44, { roughness: 0.5 }));
