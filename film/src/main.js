@@ -10,7 +10,7 @@ import { buildWorld, buildCar, cloudTexture } from './world.js';
 
 const W = 1080, H = 1920;
 const DEBUG_MIRROR = location.search.includes('mirror');
-const RS = location.search.includes('fast') ? 0.5 : 1; // 3D render scale; overlay stays full-res
+const RS = location.search.includes('fast') ? 0.5 : (parseFloat(new URLSearchParams(location.search).get('scale')) || 1); // 3D render scale; overlay stays full-res
 const TL = await (await fetch('./timeline.json')).json();
 const LINES = await (await fetch('./lines.json')).json();
 
